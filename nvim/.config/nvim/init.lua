@@ -168,6 +168,13 @@ vim.o.confirm = true
 vim.opt.swapfile = false
 vim.opt.writebackup = false
 vim.opt.backup = false
+
+-- Diff view: better inline highlighting for small changes.
+--  linematch aligns changed lines so the DiffText highlight lands on the exact
+--    changed characters instead of smearing across whole lines.
+--  algorithm:histogram gives tighter, more intuitive word-level diffs.
+vim.opt.diffopt:append 'linematch:60'
+vim.opt.diffopt:append 'algorithm:histogram'
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -736,6 +743,25 @@ require('lazy').setup({
           -- Tinted backgrounds for changed lines (linehl = true)
           hl.GitSignsAddLn = { bg = util.blend_bg(c.green1, 0.15) }
           hl.GitSignsChangeLn = { bg = util.blend_bg(c.yellow, 0.15) }
+
+          -- Diff view. DiffChange tints the whole changed line faintly; DiffText
+          -- highlights the *exact* changed characters within it. These global
+          -- groups are used by :diffthis, fugitive, gitsigns word-diff, etc.
+          hl.DiffAdd = { bg = util.blend_bg(c.green1, 0.18) }
+          hl.DiffDelete = { bg = util.blend_bg(c.red1, 0.18) }
+          hl.DiffChange = { bg = util.blend_bg(c.blue, 0.12) }
+          hl.DiffText = { bg = util.blend_bg(c.blue, 0.45), bold = true }
+
+          -- Side-aware change highlights for diffview (VSCode-style). Neovim's
+          -- diff engine uses one shared DiffChange/DiffText for a changed line
+          -- across BOTH panes, so the only way to colour old vs new differently
+          -- is a per-window winhighlight remap onto these groups — wired up in
+          -- lua/custom/plugins/diffview.lua. Old/left pane = red, new/right =
+          -- green; the exact changed chars (…Text…) get a stronger tint + bold.
+          hl.DiffChangeOld = { bg = util.blend_bg(c.red1, 0.16) }
+          hl.DiffTextOld = { bg = util.blend_bg(c.red1, 0.4), bold = true }
+          hl.DiffChangeNew = { bg = util.blend_bg(c.green1, 0.16) }
+          hl.DiffTextNew = { bg = util.blend_bg(c.green1, 0.4), bold = true }
         end,
       }
       vim.cmd.colorscheme 'tokyonight-night'

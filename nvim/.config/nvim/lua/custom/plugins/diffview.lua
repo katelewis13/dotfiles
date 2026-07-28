@@ -68,6 +68,42 @@ return {
   config = function(_, opts)
     require('diffview').setup(opts)
 
+    -- VSCode-style side-aware diff colours. Neovim's diff engine paints a
+    -- changed line with the SAME DiffChange/DiffText on both panes, so a
+    -- partial, in-line edit shows one colour on each side. Remap those two
+    -- groups per window via `winhighlight` so the old (left) pane renders
+    -- changes in red and the new (right) pane in green — the changed line
+    -- gets a soft wash, the exact changed characters a stronger tint (the
+    -- …Old/…New groups are defined in tokyonight's on_highlights in init.lua).
+    -- Whole added/deleted lines already use DiffAdd/DiffDelete (green/red) and
+    -- are left untouched.
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'DiffviewDiffBufWinEnter',
+      group = vim.api.nvim_create_augroup('diffview_side_hl', { clear = true }),
+      callback = function()
+        local ok, lib = pcall(require, 'diffview.lib')
+        if not ok then
+          return
+        end
+        local view = lib.get_current_view()
+        local layout = view and view.cur_layout
+        -- Only the standard 2-way diff (old = a, new = b). A 3-way merge layout
+        -- has a `.c` window, where red/green old-vs-new is ambiguous — skip it.
+        if not layout or layout.c or not (layout.a and layout.b) then
+          return
+        end
+        local sides = {
+          [layout.a.id] = 'DiffChange:DiffChangeOld,DiffText:DiffTextOld',
+          [layout.b.id] = 'DiffChange:DiffChangeNew,DiffText:DiffTextNew',
+        }
+        for winid, winhl in pairs(sides) do
+          if winid and vim.api.nvim_win_is_valid(winid) then
+            vim.api.nvim_set_option_value('winhighlight', winhl, { win = winid })
+          end
+        end
+      end,
+    })
+
     -- Diffview remaps every fold command in its diff buffers to wrapper
     -- functions tagged `desc = "diffview_ignore"` (see diffview/actions.lua).
     -- which-key reads that desc verbatim and shows "diffview ignore". Since
