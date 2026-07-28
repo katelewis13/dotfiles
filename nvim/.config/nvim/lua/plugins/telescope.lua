@@ -83,6 +83,11 @@ return {
     vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
     vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
     vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+    -- Hidden variant: include dotfiles/dotdirs (--hidden). Still respects
+    -- .gitignore, and .git/ itself is filtered out of the results.
+    vim.keymap.set('n', '<leader>sF', function()
+      builtin.find_files { hidden = true, file_ignore_patterns = { '%.git/' } }
+    end, { desc = '[S]earch [F]iles (incl. hidden)' })
     vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
     vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
     -- vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -92,6 +97,19 @@ return {
     vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
     vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
     vim.keymap.set('n', '<leader>sg', ":lua require('telescope').extensions.live_grep_args.live_grep_args()<CR>", { desc = '[S]earch by [G]rep w/ Args' })
+    -- Hidden variant: same live-grep-args UX (inline rg args, auto-quoting) but
+    -- with --hidden baked in so dotfiles are searched. Reuses the default rg
+    -- args (smart-case etc.), still respects .gitignore, and skips .git/.
+    -- Tip: for a one-off, you can also just type `--hidden` (or `-uu` for
+    -- hidden + ignored) into the normal <leader>sg prompt.
+    vim.keymap.set('n', '<leader>sG', function()
+      local args = vim.deepcopy(require('telescope.config').values.vimgrep_arguments)
+      vim.list_extend(args, { '--hidden', '--glob=!**/.git/*' })
+      require('telescope').extensions.live_grep_args.live_grep_args {
+        vimgrep_arguments = args,
+        prompt_title = 'Live Grep w/ Args (incl. hidden)',
+      }
+    end, { desc = '[S]earch by [G]rep (incl. hidden)' })
 
     -- LSP keymaps via Telescope pickers (set per-buffer on LspAttach)
     vim.api.nvim_create_autocmd('LspAttach', {
