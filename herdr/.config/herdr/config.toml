@@ -1,0 +1,75 @@
+onboarding = false
+# herdr configuration — tmux-compatible keybindings
+# Location: ~/.config/herdr/config.toml
+#
+# Goal: make herdr's prefix commands match tmux's DEFAULT bindings so your
+# muscle memory carries over. herdr already uses tmux's ctrl+b prefix, and
+# these overrides move the remaining actions onto their tmux equivalents.
+#
+# Concept mapping:
+#   tmux "window"  -> herdr "tab"
+#   tmux "session" -> herdr "workspace"
+#   tmux "pane"    -> herdr "pane"
+#
+# After editing, reload without restarting:  herdr server reload-config
+# Validate this file:                         herdr config check
+
+[keys]
+# Prefix key — same as tmux's default C-b.
+prefix = "ctrl+b"
+
+# ── Help / misc ──────────────────────────────────────────────────────────
+help = "prefix+?"              # tmux: prefix ? (list-keys)
+
+# tmux binds 's' to the session chooser and 'S-s' is free, so settings moves
+# out of the way of the tmux session picker below.
+settings = "prefix+shift+s"
+
+# ── Windows (tmux) == Tabs (herdr) ───────────────────────────────────────
+new_tab = "prefix+c"           # tmux: prefix c (new-window)
+rename_tab = "prefix+,"        # tmux: prefix , (rename-window)
+close_tab = "prefix+&"         # tmux: prefix & (kill-window)
+next_tab = "prefix+n"          # tmux: prefix n (next-window)
+previous_tab = "prefix+p"      # tmux: prefix p (previous-window)
+switch_tab = "prefix+1..9"     # tmux: prefix 0-9 (select-window)
+
+# ── Panes ────────────────────────────────────────────────────────────────
+# In herdr, split_vertical creates a left/right divider (tmux %),
+# split_horizontal creates a top/bottom divider (tmux ").
+split_vertical = "prefix+%"    # tmux: prefix % (split -h, side by side)
+split_horizontal = "prefix+\"" # tmux: prefix " (split -v, stacked)
+close_pane = "prefix+x"        # tmux: prefix x (kill-pane)
+zoom = "prefix+z"              # tmux: prefix z (resize-pane -Z)
+resize_mode = "prefix+r"       # tmux: prefix + <arrows> live resize
+
+# Directional pane focus — tmux uses the arrow keys after the prefix.
+focus_pane_left = "prefix+left"
+focus_pane_down = "prefix+down"
+focus_pane_up = "prefix+up"
+focus_pane_right = "prefix+right"
+
+cycle_pane_next = "prefix+o"   # tmux: prefix o (rotate focus through panes)
+last_pane = "prefix+;"         # tmux: prefix ; (last active pane)
+
+# Scrollback / copy mode.
+edit_scrollback = "prefix+["   # tmux: prefix [ (copy-mode / scroll)
+
+# ── Sessions (tmux) == Workspaces (herdr) ────────────────────────────────
+workspace_picker = "prefix+s"  # tmux: prefix s (choose-session)
+rename_workspace = "prefix+$"  # tmux: prefix $ (rename-session)
+detach = "prefix+d"            # tmux: prefix d (detach-client)
+previous_workspace = "prefix+("  # tmux: prefix ( (switch-client -p)
+next_workspace = "prefix+)"      # tmux: prefix ) (switch-client -n)
+
+# ── Config reload ────────────────────────────────────────────────────────
+# Many tmux users bind 'r' to reload-config; herdr keeps 'r' for resize_mode
+# (above), so reload stays on shift+r. Change if you prefer prefix+r.
+reload_config = "prefix+shift+r"
+
+# ── Notes: tmux keys with no direct herdr equivalent ─────────────────────
+# These have no matching herdr action, so they're intentionally left out:
+#   prefix {  / }   swap-pane          (no swap action)
+#   prefix !        break-pane         (no break-pane action)
+#   prefix <space>  next-layout        (herdr manages layout automatically)
+#   prefix ]        paste-buffer       (use your terminal's paste)
+#   prefix t        clock-mode
