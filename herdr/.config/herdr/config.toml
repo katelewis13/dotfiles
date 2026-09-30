@@ -73,3 +73,9 @@ reload_config = "prefix+shift+r"
 #   prefix <space>  next-layout        (herdr manages layout automatically)
 #   prefix ]        paste-buffer       (use your terminal's paste)
 #   prefix t        clock-mode
+
+# ── Agents panel ─────────────────────────────────────────────────────────
+# The tab name on each agent row renders grey by default; make it readable.
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", { token = "tab", fg = "#f5c2e7", bold = false, dim = false }], ["agent"]]
+

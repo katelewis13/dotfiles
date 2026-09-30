@@ -1,3 +1,42 @@
+-- Resolve the branch this one was cut from: prefer the remote's default branch
+-- if origin/HEAD is set, then fall back through the usual suspects.
+local function base_branch()
+  local head = vim.fn.systemlist('git symbolic-ref --quiet refs/remotes/origin/HEAD')[1]
+  if vim.v.shell_error == 0 and head and head ~= '' then
+    return head:gsub('^refs/remotes/', '') -- e.g. origin/master
+  end
+  for _, b in ipairs { 'origin/main', 'origin/master', 'main', 'master' } do
+    vim.fn.system('git rev-parse --verify --quiet ' .. b)
+    if vim.v.shell_error == 0 then
+      return b
+    end
+  end
+  return 'master'
+end
+
+-- The commit where this branch diverged from its base. Diffing/logging against
+-- the merge-base rather than the base *tip* keeps commits that landed on the
+-- base after we branched out of the view. Returns nil (and notifies) on failure.
+local function merge_base()
+  local rev = vim.fn.systemlist('git merge-base ' .. base_branch() .. ' HEAD')[1]
+  if vim.v.shell_error ~= 0 or not rev or rev == '' then
+    vim.notify('Could not find merge-base with default branch', vim.log.levels.ERROR)
+    return nil
+  end
+  return rev
+end
+
+-- Close the Diffview tab we're sitting in, if any, and report whether we did —
+-- lets each mapping be a toggle via `if closed_existing() then return end`.
+-- Closing the view tears down all its diff buffers in one go.
+local function closed_existing()
+  if require('diffview.lib').get_current_view() then
+    vim.cmd.DiffviewClose()
+    return true
+  end
+  return false
+end
+
 return {
   -- Single tabpage interface for cycling through diffs, plus a git file-history
   -- browser. Complements gitsigns (which is per-hunk) with repo-wide and historical views.
@@ -14,59 +53,88 @@ return {
     {
       '<leader>gd',
       function()
-        -- Toggle: close if a Diffview tab is already open, otherwise open one.
-        if require('diffview.lib').get_current_view() then
-          vim.cmd.DiffviewClose()
-        else
-          vim.cmd.DiffviewOpen()
+        if closed_existing() then
+          return
         end
+        vim.cmd.DiffviewOpen()
       end,
       desc = 'Git [d]iffview toggle (working tree)',
     },
     {
       '<leader>gp',
       function()
-        -- Toggle: close if a Diffview tab is already open, otherwise open one.
-        if require('diffview.lib').get_current_view() then
-          vim.cmd.DiffviewClose()
+        if closed_existing() then
           return
         end
         -- PR-style diff: working tree (incl. uncommitted changes) against the
         -- merge-base with the default branch — what a GitHub PR shows, plus any
-        -- local edits not yet committed.
-        local function base_branch()
-          -- Prefer the remote's default branch if origin/HEAD is set.
-          local head = vim.fn.systemlist('git symbolic-ref --quiet refs/remotes/origin/HEAD')[1]
-          if vim.v.shell_error == 0 and head and head ~= '' then
-            return head:gsub('^refs/remotes/', '') -- e.g. origin/master
-          end
-          for _, b in ipairs { 'origin/main', 'origin/master', 'main', 'master' } do
-            vim.fn.system('git rev-parse --verify --quiet ' .. b)
-            if vim.v.shell_error == 0 then
-              return b
-            end
-          end
-          return 'master'
+        -- local edits not yet committed. Omitting a right-hand side is what
+        -- makes diffview compare against the working tree.
+        local rev = merge_base()
+        if rev then
+          vim.cmd('DiffviewOpen ' .. rev)
         end
-        -- Diff against the merge-base commit (not the base tip), so commits that
-        -- landed on the base after we branched don't pollute the view. Omitting a
-        -- right-hand side makes diffview compare against the working tree, so
-        -- uncommitted changes show up too.
-        local merge_base = vim.fn.systemlist('git merge-base ' .. base_branch() .. ' HEAD')[1]
-        if vim.v.shell_error ~= 0 or not merge_base or merge_base == '' then
-          vim.notify('Could not find merge-base with default branch', vim.log.levels.ERROR)
-          return
-        end
-        vim.cmd('DiffviewOpen ' .. merge_base)
       end,
       desc = 'Git [p]R-style diff (branch vs base)',
     },
-    { '<leader>gh', '<cmd>DiffviewFileHistory<cr>', desc = 'Git repo [h]istory' },
-    { '<leader>gf', '<cmd>DiffviewFileHistory %<cr>', desc = 'Git current [f]ile history' },
+    {
+      '<leader>gc',
+      function()
+        if closed_existing() then
+          return
+        end
+        -- Commits on this branch only. The file-history panel lists them
+        -- newest-first; <CR> on a commit expands it into its changed files,
+        -- each opening as a normal two-pane diff of that single commit.
+        local rev = merge_base()
+        if rev then
+          vim.cmd('DiffviewFileHistory --range=' .. rev .. '..HEAD')
+        end
+      end,
+      desc = 'Git branch [c]ommits (this branch vs base)',
+    },
+    {
+      '<leader>gh',
+      function()
+        if closed_existing() then
+          return
+        end
+        vim.cmd.DiffviewFileHistory()
+      end,
+      desc = 'Git repo [h]istory',
+    },
+    {
+      '<leader>gf',
+      function()
+        if closed_existing() then
+          return
+        end
+        -- Expand `%` here rather than passing it through: DiffviewFileHistory
+        -- resolves paths against the cwd, and the buffer name may be relative
+        -- to something else.
+        vim.cmd('DiffviewFileHistory ' .. vim.fn.fnameescape(vim.fn.expand '%:p'))
+      end,
+      desc = 'Git current [f]ile history',
+    },
   },
   opts = {},
   config = function(_, opts)
     require('diffview').setup(opts)
+
+    -- Keep the unchanged parts of the file visible. Diffview opens each diff
+    -- window with `foldmethod=diff`, `foldlevel=0`, so every run of unchanged
+    -- lines starts collapsed; bumping foldlevel opens them while leaving the
+    -- folds themselves in place, so zm/zM still work when the context gets in
+    -- the way.
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'DiffviewDiffBufWinEnter',
+      group = vim.api.nvim_create_augroup('diffview_open_folds', { clear = true }),
+      callback = function()
+        -- Diffview emits this from inside the diff window itself, so the
+        -- current window is the one to unfold.
+        vim.wo.foldlevel = 99
+      end,
+    })
 
     -- VSCode-style side-aware diff colours. Neovim's diff engine paints a
     -- changed line with the SAME DiffChange/DiffText on both panes, so a

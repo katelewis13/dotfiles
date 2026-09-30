@@ -34,7 +34,26 @@ return {
     telescope.setup {
       -- your config
       defaults = {
-        path_display = { 'truncate' },
+        -- `smart` strips the prefix common to every result; `filename_first`
+        -- then pulls the filename to the front so it's never the bit that
+        -- gets cut. `reverse_directories` reads the dirs innermost-first.
+        path_display = {
+          'smart',
+          filename_first = { reverse_directories = true },
+        },
+        -- Show the selected entry's cwd-relative path as the preview window's
+        -- border title, updating as the selection moves.
+        dynamic_preview_title = true,
+        -- `flex` picks horizontal on a wide terminal and vertical when it
+        -- narrows past `flip_columns` (vertical gives results the full width).
+        layout_strategy = 'flex',
+        layout_config = {
+          width = 0.95,
+          height = 0.9,
+          flip_columns = 140,
+          horizontal = { preview_width = 0.55 },
+          vertical = { preview_height = 0.5 },
+        },
       },
       pickers = {
         buffers = {

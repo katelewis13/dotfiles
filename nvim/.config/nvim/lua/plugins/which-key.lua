@@ -10,6 +10,7 @@ return { -- Useful plugin to show you pending keybinds.
 
     -- Document existing key chains
     spec = {
+      { '<leader>a', group = '[A]I', mode = { 'n', 'v' } },
       { '<leader>c', group = '[C]ode' },
       { '<leader>d', group = '[D]ocument' },
       { '<leader>r', group = '[R]ename' },

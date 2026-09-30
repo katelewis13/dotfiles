@@ -730,6 +730,9 @@ require('lazy').setup({
             hl['RenderMarkdownH' .. i] = { fg = color, bold = true }
           end
 
+          -- Olive comments: the stock grey was too low-contrast
+          hl.Comment = { fg = '#a9a06b' }
+
           -- Make gitsigns gutter signs more prominent: bright palette colors + bold
           hl.GitSignsAdd = { fg = c.green1, bold = true }
           hl.GitSignsChange = { fg = c.yellow, bold = true }
@@ -747,10 +750,10 @@ require('lazy').setup({
           -- Diff view. DiffChange tints the whole changed line faintly; DiffText
           -- highlights the *exact* changed characters within it. These global
           -- groups are used by :diffthis, fugitive, gitsigns word-diff, etc.
-          hl.DiffAdd = { bg = util.blend_bg(c.green1, 0.18) }
-          hl.DiffDelete = { bg = util.blend_bg(c.red1, 0.18) }
-          hl.DiffChange = { bg = util.blend_bg(c.blue, 0.12) }
-          hl.DiffText = { bg = util.blend_bg(c.blue, 0.45), bold = true }
+          hl.DiffAdd = { bg = '#283438' }
+          hl.DiffDelete = { bg = util.blend_bg(c.red1, 0.26) }
+          hl.DiffChange = { bg = '#2b3038' }
+          hl.DiffText = { bg = '#38445f', bold = true }
 
           -- Side-aware change highlights for diffview (VSCode-style). Neovim's
           -- diff engine uses one shared DiffChange/DiffText for a changed line
@@ -758,10 +761,10 @@ require('lazy').setup({
           -- is a per-window winhighlight remap onto these groups — wired up in
           -- lua/custom/plugins/diffview.lua. Old/left pane = red, new/right =
           -- green; the exact changed chars (…Text…) get a stronger tint + bold.
-          hl.DiffChangeOld = { bg = util.blend_bg(c.red1, 0.16) }
-          hl.DiffTextOld = { bg = util.blend_bg(c.red1, 0.4), bold = true }
-          hl.DiffChangeNew = { bg = util.blend_bg(c.green1, 0.16) }
-          hl.DiffTextNew = { bg = util.blend_bg(c.green1, 0.4), bold = true }
+          hl.DiffChangeOld = { bg = util.blend_bg(c.red1, 0.17) }
+          hl.DiffTextOld = { bg = util.blend_bg(c.red1, 0.44), bold = true }
+          hl.DiffChangeNew = { bg = '#222c30' }
+          hl.DiffTextNew = { bg = '#2d494d', bold = true }
         end,
       }
       vim.cmd.colorscheme 'tokyonight-night'
